@@ -1,0 +1,9 @@
+[package]
+name = "websocket-example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio-tungstenite = { version = "0.23.1", features = ["connect", "native-tls"] }
+tokio = { version = "1.0.0", features = ["full"] }
+futures-util = "0.3.30"
