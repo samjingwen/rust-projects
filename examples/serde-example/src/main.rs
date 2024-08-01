@@ -1,7 +1,7 @@
 mod messages;
 
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde::de::Error;
 use serde_json::{Value};
 use serde_with::{serde_as, DisplayFromStr};
@@ -31,5 +31,10 @@ struct OrderBook {
     bids: Vec<OrderBookLevel>,
     asks: Vec<OrderBookLevel>,
     #[serde_as(as = "DisplayFromStr")]
+    #[serde(default = "default_timestamp")]
     timestamp: DateTime<Utc>,
+}
+
+fn default_timestamp() -> DateTime<Utc> {
+    Utc::now()
 }
