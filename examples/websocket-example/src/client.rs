@@ -1,6 +1,7 @@
 use std::sync::mpsc;
 use std::thread;
 use serde::{Deserialize, Deserializer, Serialize};
+use serde::de::Error;
 use serde_json::Value;
 use tungstenite::{connect, Message};
 
@@ -55,16 +56,12 @@ impl Kraken {
             socket.send(Message::text(SUBSCRIBE_MESSAGE.to_string())).expect("request failed");
 
             loop {
-                let message = socket.read().expect("connection failed");
-                if let Message::Text(text) = message {
-                    if let Ok(value) = serde_json::from_str::<Value>(&text) {
-                        if let Some(data) = value.get("data") {
-                            if let Ok(order_book) = serde_json::from_value::<Vec<OrderBook>>(data.to_owned()) {
-                                if let Some(order_book) = order_book.into_iter().nth(0) {
-                                    let _ = sender.send(order_book);
-                                }
-                            }
-                        }
+                let message = socket.read();
+                if let Ok(Message::Text(text)) = message {
+                    if let Ok(order_book) = parse_order_book(&text) {
+                        let _ = sender.send(order_book);
+                    } else {
+                        println!("not order book: {text}")
                     }
                 }
             }
@@ -74,4 +71,9 @@ impl Kraken {
     }
 }
 
-
+fn parse_order_book(text: &str) -> Result<OrderBook, serde_json::Error> {
+    let value: Value = serde_json::from_str(text)?;
+    let data = value.get("data").ok_or_else(|| serde_json::Error::custom("Missing 'data' field"))?;
+    let order_books: Vec<OrderBook> = serde_json::from_value(data.to_owned())?;
+    order_books.into_iter().nth(0).ok_or_else(|| serde_json::Error::custom("No OrderBook found"))
+}
